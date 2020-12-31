@@ -31,13 +31,27 @@ const normalizeAccountNumber = (value) => {
 };
 // Validate CVC Number Field Input for Card Payment
 const normalizeCVC = (value) => {
-  // alert(value);
   if (/^\d+$/.test(value)) return value.substr(0, 3) || "";
   else if (/^\d+$/.test(value) && value.length == 3) {
     this.setState({
       cvc: value,
     });
-    alert(this.state.cvc);
+  } else return "";
+};
+const normalizeBic = (value) => {
+  if (/^\d+$/.test(value)) return value.substr(0, 9) || "";
+  else if (/^\d+$/.test(value) && value.length == 9) {
+    this.setState({
+      bic: value,
+    });
+  } else return "";
+};
+const normalizeTin = (value) => {
+  if (/^\d+$/.test(value)) return value.substr(0, 12) || "";
+  else if (/^\d+$/.test(value) && value.length == 12) {
+    this.setState({
+      tin: value,
+    });
   } else return "";
 };
 // Validate If the amount sent is valid
@@ -46,19 +60,12 @@ const normalizeAmount = (value) => {
   else if (value > 75000) {
     return 75000;
   } else {
-    this.setState({
-      amount: value,
-    });
     return value;
   }
 };
 // Validate the full name of the sender
 const normalizeCardHolder = (value) => {
   if (/^[a-zA-Z]+[a-zA-Z ]*$/.test(value)) {
-    alert(value);
-    this.setState({
-      cardHolder: value,
-    });
     return value;
   } else return "";
 };
@@ -67,9 +74,6 @@ const normalizeExpiryDate = (value) => {
   if (value < 1 || value > 12) {
     return 1;
   } else {
-    this.setState({
-      month: value,
-    });
     return value;
   }
 };
@@ -77,12 +81,7 @@ const normalizeExpiryDate = (value) => {
 //Validate credit card year expiry
 const normalizeExpiryDateYear = (value) => {
   if (value < 2020 || value > 2035) return 2020;
-  else {
-    this.setState({
-      year: value,
-    });
-    return value;
-  }
+  return value;
 };
 
 export class App extends Component {
@@ -91,23 +90,37 @@ export class App extends Component {
     this.state = {
       paymentMethod: "card",
       cardHolder: "",
-      cardNumber: 0,
+      cardNumber: "",
       accountNumber: "",
-      month: 0,
-      year: 0,
-      cvc: 0,
+      tin: "",
+      bic: "",
+      month: "",
+      year: "",
+      cvc: "",
       email: "",
       amount: 0,
       isCard: true,
+      isFormReady: false,
     };
     this.cardHolderChange = this.cardHolderChange.bind(this);
     this.cardNumberChange = this.cardNumberChange.bind(this);
+    this.cvcChange = this.cvcChange.bind(this);
+    this.amountChange = this.amountChange.bind(this);
+    this.tinChange = this.tinChange.bind(this);
+    this.bicChange = this.bicChange.bind(this);
+    this.monthChange = this.monthChange.bind(this);
+    this.yearChange = this.yearChange.bind(this);
+    this.emailChange = this.emailChange.bind(this);
   }
 
   //Activates button when all fields are filled in card payment
-  isCardFormValid = () => {
+  isFormValid = () => {
     const {
+      paymentMethod,
       cardHolder,
+      accountNumber,
+      tin,
+      bic,
       cardNumber,
       month,
       year,
@@ -115,7 +128,37 @@ export class App extends Component {
       email,
       amount,
     } = this.state;
-    return cardHolder && cardNumber && month && year && cvc && email && amount;
+    if (paymentMethod === "card") {
+      if (
+        cardHolder.length > 0 &&
+        cardNumber.trim().length === 19 &&
+        month.length > 0 &&
+        year.length > 0 &&
+        cvc.length === 3 &&
+        email.length > 0 &&
+        amount >= 999 &&
+        amount <= 75000
+      ) {
+        this.setState({
+          isFormReady: true,
+        });
+      }
+    }
+    if (paymentMethod === "bank") {
+      if (
+        cardHolder.length > 0 &&
+        accountNumber.trim().length == 20 &&
+        (tin.length === 10 || tin.length === 12) &&
+        bic.length === 9 &&
+        email.length > 0 &&
+        amount >= 1000 &&
+        amount <= 75000
+      ) {
+        this.setState({
+          isFormReady: true,
+        });
+      }
+    }
   };
   cardHolderChange(e) {
     this.setState({
@@ -128,7 +171,52 @@ export class App extends Component {
     });
   }
 
-  //Switches form depending on how the user wants to pay
+  cardHolderChange(e) {
+    this.setState({
+      cardHolder: e.target.value,
+    });
+  }
+
+  cvcChange(e) {
+    this.setState({
+      cvc: e.target.value,
+    });
+  }
+
+  amountChange(e) {
+    this.setState({
+      amount: e.target.value,
+    });
+  }
+
+  tinChange(e) {
+    this.setState({
+      tin: e.target.value,
+    });
+  }
+  bicChange(e) {
+    this.setState({
+      bic: e.target.value,
+    });
+  }
+
+  monthChange(e) {
+    this.setState({
+      month: e.target.value,
+    });
+  }
+
+  yearChange(e) {
+    this.setState({
+      year: e.target.value,
+    });
+  }
+
+  emailChange(e) {
+    this.setState({
+      email: e.target.value,
+    });
+  }
   setPaymentCard(event) {
     if (event.id == "cardPayment") {
       this.setState({
@@ -145,14 +233,42 @@ export class App extends Component {
 
   //Send api request to backend to process the payment
   submitPayment() {
-    axios
-      .post("/ports", this.state)
-      .then((res) => {
-        console.log(res.data);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    if (this.state.paymentMethod === "card") {
+      axios
+        .post("/addCardPayment", {
+          cardHolder: this.state.cardHolder,
+          cardNumber: this.state.cardNumber,
+          month: this.state.month,
+          year: this.state.year,
+          cvc: this.state.cvc,
+          email: this.state.email,
+          amount: this.state.amount,
+        })
+        .then(function (response) {
+          console.log(response);
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
+    }
+
+    if (this.state.paymentMethod === "bank") {
+      axios
+        .post("/addBankPayment", {
+          fullName: this.state.cardHolder,
+          accountNumber: this.state.cardNumber,
+          tin: this.state.tin,
+          bic: this.state.bic,
+          email: this.state.email,
+          amount: this.state.amount,
+        })
+        .then(function (response) {
+          console.log(response);
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
+    }
   }
 
   render() {
@@ -195,7 +311,7 @@ export class App extends Component {
               </button>
             </div>
             <h1> URFU Payment </h1>
-            <form onSubmit={this.handleSubmit} noValidate>
+            <form onSubmit={this.submitPayment} onChange={this.isFormValid}>
               <div className="CardHolder">
                 <label htmlFor="Card Holder"> Card Holder</label>
                 <input
@@ -208,6 +324,9 @@ export class App extends Component {
                   onChange={(event) => {
                     const { value } = event.target;
                     event.target.value = normalizeCardHolder(value);
+                    this.setState({
+                      cardHolder: value,
+                    });
                   }}
                 />
               </div>
@@ -225,6 +344,9 @@ export class App extends Component {
                   onChange={(event) => {
                     const { value } = event.target;
                     event.target.value = normalizeCardNumber(value);
+                    this.setState({
+                      cardNumber: value,
+                    });
                   }}
                 />
               </div>
@@ -237,10 +359,13 @@ export class App extends Component {
                   max="12"
                   placeholder="01"
                   noValidate
-                  onChange={this.handleChange}
+                  onChange={this.monthChange}
                   onChange={(event) => {
                     const { value } = event.target;
                     event.target.value = normalizeExpiryDate(value);
+                    this.setState({
+                      month: value,
+                    });
                   }}
                 />
               </div>
@@ -252,10 +377,13 @@ export class App extends Component {
                   min="2020"
                   max="2035"
                   noValidate
-                  onChange={this.handleChange}
+                  onChange={this.yearChange}
                   onChange={(event) => {
                     const { value } = event.target;
                     event.target.value = normalizeExpiryDateYear(value);
+                    this.setState({
+                      year: value,
+                    });
                   }}
                 />
               </div>
@@ -268,9 +396,13 @@ export class App extends Component {
                   type="text"
                   name="CVC"
                   noValidate
+                  onChange={this.cvcChange}
                   onChange={(event) => {
                     const { value } = event.target;
                     event.target.value = normalizeCVC(value);
+                    this.setState({
+                      cvc: value,
+                    });
                   }}
                 />
               </div>
@@ -283,7 +415,12 @@ export class App extends Component {
                   type="email"
                   name="email"
                   noValidate
-                  onChange={this.handleChange}
+                  onChange={(event) => {
+                    const { value } = event.target;
+                    this.setState({
+                      email: value,
+                    });
+                  }}
                 />
               </div>
               <div className="amount">
@@ -299,6 +436,9 @@ export class App extends Component {
                   onChange={(event) => {
                     const { value } = event.target;
                     event.target.value = normalizeAmount(value);
+                    this.setState({
+                      amount: value,
+                    });
                   }}
                 />
               </div>
@@ -306,7 +446,7 @@ export class App extends Component {
                 <button
                   type="submit"
                   onClick={this.submitPayment}
-                  disabled={() => this.isCardFormValid}
+                  disabled={!this.state.isFormReady}
                 >
                   Pay
                 </button>
@@ -347,9 +487,9 @@ export class App extends Component {
               </button>
             </div>
             <h1> URFU Payment </h1>
-            <form onSubmit={this.handleSubmit} noValidate>
+            <form onSubmit={this.submitPayment} onChange={this.isFormValid}>
               <div className="CardHolder">
-                <label htmlFor="Card Holder"> Card Holder</label>
+                <label htmlFor="Card Holder"> Full Name</label>
                 <input
                   type="text"
                   className=""
@@ -360,6 +500,9 @@ export class App extends Component {
                   onChange={(event) => {
                     const { value } = event.target;
                     event.target.value = normalizeCardHolder(value);
+                    this.setState({
+                      cardHolder: value,
+                    });
                   }}
                 />
               </div>
@@ -376,6 +519,49 @@ export class App extends Component {
                   onChange={(event) => {
                     const { value } = event.target;
                     event.target.value = normalizeAccountNumber(value);
+                    this.setState({
+                      accountNumber: value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="CVC">
+                <label htmlFor="TIN">TIN</label>
+                <input
+                  type="text"
+                  className=""
+                  maxLength="12"
+                  placeholder="0000000000"
+                  type="text"
+                  name="TIN"
+                  noValidate
+                  onChange={this.tinChange}
+                  onChange={(event) => {
+                    const { value } = event.target;
+                    event.target.value = normalizeTin(value);
+                    this.setState({
+                      tin: value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="CVC">
+                <label htmlFor="BIC">BIC</label>
+                <input
+                  type="text"
+                  className=""
+                  maxLength="9"
+                  placeholder="123456789"
+                  type="text"
+                  name="BIC"
+                  noValidate
+                  onChange={this.bicChange}
+                  onChange={(event) => {
+                    const { value } = event.target;
+                    event.target.value = normalizeBic(value);
+                    this.setState({
+                      bic: value,
+                    });
                   }}
                 />
               </div>
@@ -388,7 +574,12 @@ export class App extends Component {
                   type="email"
                   name="email"
                   noValidate
-                  onChange={this.handleChange}
+                  onChange={(event) => {
+                    const { value } = event.target;
+                    this.setState({
+                      email: value,
+                    });
+                  }}
                 />
               </div>
               <div className="amount">
@@ -404,6 +595,9 @@ export class App extends Component {
                   onChange={(event) => {
                     const { value } = event.target;
                     event.target.value = normalizeAmount(value);
+                    this.setState({
+                      amount: value,
+                    });
                   }}
                 />
               </div>
@@ -411,7 +605,7 @@ export class App extends Component {
                 <button
                   type="submit"
                   onClick={this.submitPayment}
-                  disabled={!this.isFormValid}
+                  disabled={!this.state.isFormReady}
                 >
                   Pay
                 </button>
