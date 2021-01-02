@@ -18,4 +18,9 @@ const cardValidator = {
       amount: Joi.number().min(1000).max(75000).required(),
     },
   },
+  markUnsafe: {
+    body: {
+      isUnsafe: boolean,
+    },
+  },
 };
