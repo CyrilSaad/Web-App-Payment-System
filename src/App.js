@@ -234,6 +234,7 @@ export class App extends Component {
   //Send api request to backend to process the payment
   submitPayment() {
     if (this.state.paymentMethod === "card") {
+      //send a request to cardPayment route in backend to add payment to database
       axios
         .post("/addCardPayment", {
           cardHolder: this.state.cardHolder,
@@ -253,6 +254,7 @@ export class App extends Component {
     }
 
     if (this.state.paymentMethod === "bank") {
+      //send a request to bankRoute route in backend to add payment to database
       axios
         .post("/addBankPayment", {
           fullName: this.state.cardHolder,
