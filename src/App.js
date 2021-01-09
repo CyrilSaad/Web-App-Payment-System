@@ -23,7 +23,7 @@ const normalizeCardNumber = (value) => {
 const normalizeAccountNumber = (value) => {
   if (/^[0-9]*/.test(value) && value.length <= 20) {
     return value.replace(/[^\d]/g, "").substr(0, 20);
-  } else if (/^[0-9]*/.test(value) && value.length == 20) {
+  } else if (/^[0-9]*/.test(value) && value.length === 20) {
     this.setState({
       accountNumber: value,
     });
@@ -32,7 +32,7 @@ const normalizeAccountNumber = (value) => {
 // Validate CVC Number Field Input for Card Payment
 const normalizeCVC = (value) => {
   if (/^\d+$/.test(value)) return value.substr(0, 3) || "";
-  else if (/^\d+$/.test(value) && value.length == 3) {
+  else if (/^\d+$/.test(value) && value.length === 3) {
     this.setState({
       cvc: value,
     });
@@ -40,7 +40,7 @@ const normalizeCVC = (value) => {
 };
 const normalizeBic = (value) => {
   if (/^\d+$/.test(value)) return value.substr(0, 9) || "";
-  else if (/^\d+$/.test(value) && value.length == 9) {
+  else if (/^\d+$/.test(value) && value.length === 9) {
     this.setState({
       bic: value,
     });
@@ -48,7 +48,7 @@ const normalizeBic = (value) => {
 };
 const normalizeTin = (value) => {
   if (/^\d+$/.test(value)) return value.substr(0, 12) || "";
-  else if (/^\d+$/.test(value) && value.length == 12) {
+  else if (/^\d+$/.test(value) && value.length === 12) {
     this.setState({
       tin: value,
     });
@@ -232,15 +232,16 @@ export class App extends Component {
   }
 
   //Send api request to backend to process the payment
-  submitPayment() {
+  submitPayment = () => {
     if (this.state.paymentMethod === "card") {
       //send a request to cardPayment route in backend to add payment to database
+      alert(this.state.cardHolder);
       axios
-        .post("/addCardPayment", {
+        .post("http://localhost:3001/addCardPayment", {
           cardHolder: this.state.cardHolder,
           cardNumber: this.state.cardNumber,
-          month: this.state.month,
-          year: this.state.year,
+          expiryMonth: this.state.month,
+          expiryYear: this.state.year,
           cvc: this.state.cvc,
           email: this.state.email,
           amount: this.state.amount,
@@ -256,34 +257,36 @@ export class App extends Component {
     if (this.state.paymentMethod === "bank") {
       //send a request to bankRoute route in backend to add payment to database
       axios
-        .post("/addBankPayment", {
+        .post("http://localhost:3001/bank/addBankPayment", {
           fullName: this.state.cardHolder,
-          accountNumber: this.state.cardNumber,
+          accountNumber: this.state.accountNumber,
           tin: this.state.tin,
           bic: this.state.bic,
           email: this.state.email,
           amount: this.state.amount,
         })
         .then(function (response) {
+          alert(response);
           console.log(response);
         })
         .catch(function (error) {
+          alert(error);
           console.log(error);
         });
     }
-  }
+  };
 
   render() {
     //Underlines the tab which the user is using(pay by card or bank)
     let btn_class1 =
-      this.state.paymentMethod == "card"
+      this.state.paymentMethod === "card"
         ? "active-payment-method"
         : "switch-payment-method";
     let btn_class2 =
-      this.state.paymentMethod == "bank"
+      this.state.paymentMethod === "bank"
         ? "active-payment-method"
         : "switch-payment-method";
-    if (this.state.paymentMethod == "card") {
+    if (this.state.paymentMethod === "card") {
       // Shows form for a credit card payment
       return (
         <div className="wrapper">
@@ -309,7 +312,7 @@ export class App extends Component {
                 }}
                 className={btn_class2}
               >
-                Request Payment
+                Bank Payment
               </button>
             </div>
             <h1> URFU Payment </h1>
@@ -447,7 +450,7 @@ export class App extends Component {
               <div className="payButton">
                 <button
                   type="submit"
-                  onClick={this.submitPayment}
+                  // onClick={() => this.submitPayment}
                   disabled={!this.state.isFormReady}
                 >
                   Pay
@@ -458,7 +461,7 @@ export class App extends Component {
         </div>
       );
     }
-    if (this.state.paymentMethod == "bank") {
+    if (this.state.paymentMethod === "bank") {
       // Shows form for a payment request
       return (
         <div className="wrapper">
@@ -485,7 +488,7 @@ export class App extends Component {
                 disabled={!this.state.isCard}
                 className={btn_class2}
               >
-                Request Payment
+                Bank Payment
               </button>
             </div>
             <h1> URFU Payment </h1>
@@ -606,7 +609,7 @@ export class App extends Component {
               <div className="payButton">
                 <button
                   type="submit"
-                  onClick={this.submitPayment}
+                  // onClick={this.submitPayment}
                   disabled={!this.state.isFormReady}
                 >
                   Pay
